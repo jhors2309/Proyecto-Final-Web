@@ -10,8 +10,9 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, storage } from '../firebase/firebaseConfig';
+
+import { db } from '../firebase/firebaseConfig';
+import { supabase } from '../supabase/supabaseConfig';
 
 const incidentCollection = collection(db, 'incidentes');
 
@@ -23,17 +24,40 @@ function sortByDateDesc(incidents) {
   });
 }
 
-export async function createIncident({ user, tipo, descripcion, ubicacionTexto, latitud, longitud, imageFile }) {
+export async function createIncident({
+  user,
+  tipo,
+  descripcion,
+  ubicacionTexto,
+  latitud,
+  longitud,
+  imageFile,
+}) {
   if (!imageFile) {
     throw new Error('La fotografía es obligatoria.');
   }
 
-  const cleanFileName = imageFile.name.replaceAll(' ', '_');
-  const imagePath = `incidentes/${user.uid}/${Date.now()}-${cleanFileName}`;
-  const imageRef = ref(storage, imagePath);
+  const bucketName = 'incidentes';
 
-  await uploadBytes(imageRef, imageFile);
-  const imagenURL = await getDownloadURL(imageRef);
+
+
+  const cleanFileName = imageFile.name.replaceAll(' ', '_');
+  const imagePath = `${user.uid}/${Date.now()}-${cleanFileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(bucketName)
+    .upload(imagePath, imageFile, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: imageFile.type,
+    });
+
+  if (uploadError) {
+    throw new Error(`No fue posible subir la fotografía: ${uploadError.message}`);
+  }
+
+  const { data } = supabase.storage.from(bucketName).getPublicUrl(imagePath);
+  const imagenURL = data.publicUrl;
 
   const docRef = await addDoc(incidentCollection, {
     usuarioId: user.uid,
@@ -51,8 +75,6 @@ export async function createIncident({ user, tipo, descripcion, ubicacionTexto, 
     actualizadoEn: serverTimestamp(),
   });
 
-  await updateDoc(docRef, { id: docRef.id });
-
   return docRef.id;
 }
 
@@ -64,14 +86,20 @@ export async function getIncidentById(id) {
     throw new Error('El incidente no existe.');
   }
 
-  return { id: snapshot.id, ...snapshot.data() };
+  return {
+    id: snapshot.id,
+    ...snapshot.data(),
+  };
 }
 
 export async function getIncidentsByUser(userId, estado = 'Todos') {
   const q = query(incidentCollection, where('usuarioId', '==', userId));
   const snapshot = await getDocs(q);
 
-  let incidents = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+  let incidents = snapshot.docs.map((item) => ({
+    id: item.id,
+    ...item.data(),
+  }));
 
   if (estado !== 'Todos') {
     incidents = incidents.filter((incident) => incident.estado === estado);
@@ -82,7 +110,11 @@ export async function getIncidentsByUser(userId, estado = 'Todos') {
 
 export async function getAllIncidents(estado = 'Todos') {
   const snapshot = await getDocs(incidentCollection);
-  let incidents = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+
+  let incidents = snapshot.docs.map((item) => ({
+    id: item.id,
+    ...item.data(),
+  }));
 
   if (estado !== 'Todos') {
     incidents = incidents.filter((incident) => incident.estado === estado);
@@ -109,6 +141,7 @@ export async function updateIncidentStatus(incident, newStatus) {
   }
 
   const incidentRef = doc(db, 'incidentes', incident.id);
+
   await updateDoc(incidentRef, {
     estado: newStatus,
     actualizadoEn: serverTimestamp(),
@@ -125,6 +158,7 @@ export async function groupIncidents(incidentIds) {
 
   incidentIds.forEach((id) => {
     const incidentRef = doc(db, 'incidentes', id);
+
     batch.update(incidentRef, {
       grupoId,
       actualizadoEn: serverTimestamp(),
@@ -132,5 +166,6 @@ export async function groupIncidents(incidentIds) {
   });
 
   await batch.commit();
+
   return grupoId;
 }
