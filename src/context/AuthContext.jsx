@@ -32,7 +32,7 @@ export function AuthProvider({ children }) {
     currentUser,
     userData,
     loading,
-    isAdmin: userData?.rol === 'admin',
+    isAdmin: currentUser && userData?.rol === 'admin' ? true : false,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

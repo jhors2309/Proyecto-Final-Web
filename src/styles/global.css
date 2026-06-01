@@ -2,9 +2,19 @@
   box-sizing: border-box;
 }
 
+:root{
+  --green-1: #0f4d2f; /* profundo */
+  --green-2: #1b5e20; /* primario */
+  --green-3: #66bb6a; /* claro */
+  --accent: #4caf50;
+}
+
 body {
   margin: 0;
-  background: #f5f7f6;
+  background: linear-gradient(180deg, #f6fbf6 0%, #eef6ee 100%);
+  font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
 
 a {
@@ -48,12 +58,161 @@ a {
   border-radius: 16px !important;
 }
 
+/* Estilos para animaciones de carga */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pulse-animation {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.slide-in-up {
+  animation: slideInUp 0.5s ease-out;
+}
+
+/* Estilos responsivos para formularios */
+@media (max-width: 600px) {
+  .form-card,
+  .detail-card,
+  .chart-card,
+  .stats-filters,
+  .stat-box {
+    padding: 16px !important;
+  }
+
+  .navbar-toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .navbar-links {
+    width: 100%;
+  }
+}
+
+/* Estilos para tarjetas de incidentes */
+.incident-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.incident-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos para badges de estado */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-badge.reportado {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef5350;
+}
+
+.status-badge.en-proceso {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffb74d;
+}
+
+.status-badge.resuelto {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #66bb6a;
+}
+
+/* Estilos para modales */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1300;
+}
+
+/* Estilos para loading spinner */
+.loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-spinner svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Estilos para inputs deshabilitados */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .hero {
-  background: linear-gradient(135deg, #007a3d, #0b4f2a);
+  background: linear-gradient(135deg, var(--green-1) 0%, var(--green-2) 50%, var(--green-3) 100%);
   color: white;
   padding: 36px;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  border-radius: 0;
+  box-shadow: 0 12px 40px rgba(16, 56, 17, 0.14), inset 0 -20px 60px rgba(255,255,255,0.02);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 10% 10%, rgba(255,255,255,0.06), transparent 20%), radial-gradient(circle at 90% 80%, rgba(0,0,0,0.06), transparent 25%);
+  pointer-events: none;
+}
+
+.btn-gradient{
+  background: linear-gradient(135deg, var(--green-2) 0%, var(--green-3) 100%);
+  color: white !important;
+}
+
+.icon-circle-gradient{
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
 }
 
 .home-card,
@@ -125,20 +284,78 @@ a {
 }
 
 @media print {
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body,
+  html {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+  }
+
   .no-print,
   header,
   nav,
-  button {
+  button,
+  .stats-filters {
     display: none !important;
   }
 
-  body {
-    background: white;
-  }
-
   .chart-card,
-  .stat-box {
+  .stat-box,
+  .form-card,
+  .detail-card,
+  .incident-card,
+  .MuiPaper-root {
     box-shadow: none !important;
     border: 1px solid #ddd;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .page-header,
+  .hero,
+  .chart-card,
+  .stat-box,
+  .form-card,
+  .detail-card {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .stat-summary {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .charts-page {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .print-reportado {
+    background: linear-gradient(135deg, #ff0000 0%, #f50000 100%) !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-en-proceso {
+    background: linear-gradient(135deg, #d4f321 0%, #c9d219 100%) !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-resuelto {
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%) !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }

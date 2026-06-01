@@ -15,6 +15,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Legend,
   Pie,
   PieChart,
@@ -25,6 +26,25 @@ import {
 } from 'recharts';
 import Loading from '../components/Loading';
 import { getAllIncidents } from '../services/incidentService';
+
+// Color palette for status
+const STATUS_COLORS = {
+  'Reportado': '#f50000',    // Red
+  'En proceso': '#c9d219',   // Yellow-green
+  'Resuelto': '#4caf50',     // Green
+};
+
+// Color palette for types
+const TYPE_COLORS = [
+  '#1B5E20', // Dark green
+  '#8e16de', // Light green
+  '#16c5bc', // Medium green
+  '#b0d81e', // Lighter green
+  '#d72828', // Very light green
+  '#0c708e', // Pale green
+  '#6e821d', // Orange
+  '#FF7043', // Deep orange
+];
 
 function getDateFromFirebase(fechaCreacion) {
   if (!fechaCreacion?.toDate) return null;
@@ -84,83 +104,196 @@ function Stats() {
   if (loading) return <Loading text="Cargando estadísticas..." />;
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box className="page-header no-print">
-        <Typography variant="h4" component="h1">Estadísticas de incidentes</Typography>
-        <Button startIcon={<PrintIcon />} variant="contained" onClick={() => window.print()}>
-          Imprimir reporte
-        </Button>
+    <Box sx={{ background: '#f5f7f6', minHeight: 'calc(100vh - 64px)', pb: 4 }}>
+      {/* Header */}
+      <Box className="page-header" sx={{
+        background: 'linear-gradient(135deg, #1B5E20 0%, #4CAF50 100%)',
+        color: 'white',
+        py: 4,
+        px: 2,
+        mb: 4
+      }}>
+        <Container maxWidth="lg">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+              Estadísticas de Incidentes
+            </Typography>
+            <Button 
+              startIcon={<PrintIcon />} 
+              variant="contained" 
+              onClick={() => window.print()}
+              sx={{ 
+                background: 'rgba(255,255,255,0.2)',
+                '&:hover': { background: 'rgba(255,255,255,0.3)' }
+              }}
+            >
+              Imprimir Reporte
+            </Button>
+          </Box>
+        </Container>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Container maxWidth="lg" sx={{ mt: 3, mb: 4 }}>
+        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
 
-      <Paper className="stats-filters no-print">
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Fecha inicial"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+        {/* Filtros */}
+        <Paper className="stats-filters no-print" sx={{ p: 3, mb: 4, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Filtrar por rango de fechas</Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Fecha inicial"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                variant="outlined"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Fecha final"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                variant="outlined"
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Fecha final"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+        </Paper>
+
+        {/* Total Card */}
+        <Grid container spacing={3} className="stat-summary" sx={{ mb: 4 }}>
+          <Grid item xs={12} md={3}>
+            <Paper className="stat-box" sx={{ 
+              p: 3, 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #1B5E20 0%, #4CAF50 100%)',
+              color: 'white',
+              textAlign: 'center',
+              boxShadow: '0 4px 15px rgba(27, 94, 32, 0.2)'
+            }}>
+              <Typography variant="body2" sx={{ mb: 1, opacity: 0.9 }}>Total de incidentes</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>{filteredIncidents.length}</Typography>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <Paper className="stat-box print-reportado" sx={{ 
+              p: 3, 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #ff0000 0%, #f50000 100%)',
+              color: 'white',
+              textAlign: 'center',
+              boxShadow: '0 4px 15px rgba(255, 152, 0, 0.2)',
+              WebkitPrintColorAdjust: 'exact',
+              printColorAdjust: 'exact'
+            }}>
+              <Typography variant="body2" sx={{ mb: 1, opacity: 0.9 }}>Reportados</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>{byStatus.find(s => s.name === 'Reportado')?.value || 0}</Typography>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <Paper className="stat-box print-en-proceso" sx={{ 
+              p: 3, 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #d4f321 0%, #c9d219 100%)',
+              color: 'white',
+              textAlign: 'center',
+              boxShadow: '0 4px 15px rgba(243, 233, 33, 0.2)',
+              WebkitPrintColorAdjust: 'exact',
+              printColorAdjust: 'exact'
+            }}>
+              <Typography variant="body2" sx={{ mb: 1, opacity: 0.9 }}>En Proceso</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>{byStatus.find(s => s.name === 'En proceso')?.value || 0}</Typography>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <Paper className="stat-box print-resuelto" sx={{ 
+              p: 3, 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)',
+              color: 'white',
+              textAlign: 'center',
+              boxShadow: '0 4px 15px rgba(76, 175, 80, 0.2)',
+              WebkitPrintColorAdjust: 'exact',
+              printColorAdjust: 'exact'
+            }}>
+              <Typography variant="body2" sx={{ mb: 1, opacity: 0.9 }}>Resueltos</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>{byStatus.find(s => s.name === 'Resuelto')?.value || 0}</Typography>
+            </Paper>
           </Grid>
         </Grid>
-      </Paper>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Paper className="stat-box">
-            <Typography variant="h6">Total de incidentes</Typography>
-            <Typography variant="h2" color="primary">{filteredIncidents.length}</Typography>
-          </Paper>
-        </Grid>
+        {/* Charts */}
+        <Grid container spacing={3} className="charts-page">
+          {/* Bar Chart */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Incidentes por Estado</Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={byStatus} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '2px solid #1B5E20',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="value" name="Cantidad" fill="#1B5E20" radius={[8, 8, 0, 0]}>
+                    <LabelList dataKey="value" position="top" style={{ fill: '#333', fontWeight: 700 }} />
+                    {byStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#1B5E20'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Grid>
 
-        <Grid item xs={12} md={8}>
-          <Paper className="chart-card">
-            <Typography variant="h6" gutterBottom>Incidentes por estado</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={byStatus}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" name="Cantidad" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
+          {/* Pie Chart */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Incidentes por Tipo</Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie 
+                    data={byType} 
+                    dataKey="value" 
+                    nameKey="name" 
+                    outerRadius={90}
+                    label={{
+                      formatter: (value) => `${value}`,
+                      fill: '#333'
+                    }}
+                  >
+                    {byType.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={TYPE_COLORS[index % TYPE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '2px solid #1B5E20',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Grid>
         </Grid>
-
-        <Grid item xs={12}>
-          <Paper className="chart-card">
-            <Typography variant="h6" gutterBottom>Incidentes por tipo</Typography>
-            <ResponsiveContainer width="100%" height={330}>
-              <PieChart>
-                <Pie data={byType} dataKey="value" nameKey="name" outerRadius={110} label>
-                  {byType.map((entry, index) => (
-                    <Cell key={`cell-${entry.name}`} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Container>
+      </Container>
+    </Box>
   );
 }
 
