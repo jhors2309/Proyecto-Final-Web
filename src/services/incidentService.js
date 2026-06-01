@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -168,4 +169,28 @@ export async function groupIncidents(incidentIds) {
   await batch.commit();
 
   return grupoId;
+}
+
+export async function deleteIncident(incident) {
+  try {
+    // Eliminar imagen de Supabase si existe
+    if (incident.imagePath) {
+      const bucketName = 'incidentes';
+      const { error: deleteError } = await supabase.storage
+        .from(bucketName)
+        .remove([incident.imagePath]);
+
+      if (deleteError && deleteError.statusCode !== 404) {
+        console.error('Error al eliminar imagen:', deleteError);
+      }
+    }
+
+    // Eliminar documento de Firestore
+    const incidentRef = doc(db, 'incidentes', incident.id);
+    await deleteDoc(incidentRef);
+
+    return true;
+  } catch (error) {
+    throw new Error(`No fue posible eliminar el incidente: ${error.message}`);
+  }
 }

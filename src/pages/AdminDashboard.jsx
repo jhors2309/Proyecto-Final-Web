@@ -5,6 +5,11 @@ import {
   Button,
   Checkbox,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   InputLabel,
   MenuItem,
@@ -21,7 +26,7 @@ import {
 import { Link } from 'react-router-dom';
 import StatusBadge from '../components/StatusBadge';
 import Loading from '../components/Loading';
-import { getAllIncidents, groupIncidents, updateIncidentStatus } from '../services/incidentService';
+import { getAllIncidents, groupIncidents, updateIncidentStatus, deleteIncident } from '../services/incidentService';
 
 function formatDate(fechaCreacion) {
   if (!fechaCreacion?.toDate) return 'Pendiente';
@@ -35,6 +40,8 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [openDelete, setOpenDelete] = useState(false);
+  const [incidentToDelete, setIncidentToDelete] = useState(null);
 
   async function loadIncidents() {
     setLoading(true);
@@ -87,6 +94,31 @@ function AdminDashboard() {
     }
   }
 
+  function openDeleteDialog(incident) {
+    setIncidentToDelete(incident);
+    setOpenDelete(true);
+  }
+
+  function closeDeleteDialog() {
+    setOpenDelete(false);
+    setIncidentToDelete(null);
+  }
+
+  async function handleConfirmDelete() {
+    setMessage('');
+    setError('');
+
+    try {
+      await deleteIncident(incidentToDelete);
+      setMessage('Incidente eliminado correctamente.');
+      closeDeleteDialog();
+      await loadIncidents();
+    } catch (err) {
+      setError(err.message || 'No fue posible eliminar el incidente.');
+      closeDeleteDialog();
+    }
+  }
+
   if (loading) return <Loading text="Cargando panel administrador..." />;
 
   return (
@@ -131,6 +163,7 @@ function AdminDashboard() {
                 <TableCell>Estado actual</TableCell>
                 <TableCell>Cambiar estado</TableCell>
                 <TableCell>Detalle</TableCell>
+                <TableCell>Acciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -163,12 +196,109 @@ function AdminDashboard() {
                       Ver
                     </Button>
                   </TableCell>
+                  <TableCell>
+                    <Button 
+                      onClick={() => openDeleteDialog(incident)}
+                      size="small" 
+                      variant="outlined"
+                      sx={{ 
+                        color: '#d32f2f',
+                        borderColor: '#d32f2f',
+                        '&:hover': {
+                          backgroundColor: '#ffebee',
+                          borderColor: '#d32f2f'
+                        }
+                      }}
+                    >
+                      Eliminar
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
       )}
+
+      {/* Dialog de confirmación para eliminar */}
+      <Dialog
+        open={openDelete}
+        onClose={closeDeleteDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #1B5E20 0%, #4CAF50 100%)',
+            color: 'white',
+            fontWeight: 700,
+            fontSize: '1.3rem',
+            borderBottom: 'none',
+            pb: 2,
+          }}
+        >
+          Confirmar eliminación
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <DialogContentText sx={{ color: '#333', fontSize: '1rem', mb: 2 }}>
+            ¿Estás seguro de que deseas eliminar este incidente?
+          </DialogContentText>
+          {incidentToDelete && (
+            <Box sx={{
+              backgroundColor: '#f5f5f5',
+              p: 2,
+              borderRadius: 1,
+              borderLeft: '4px solid #1B5E20'
+            }}>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Tipo:</strong> {incidentToDelete.tipo}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Ubicación:</strong> {incidentToDelete.ubicacionTexto}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#666' }}>
+                Esta acción no se puede deshacer.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button 
+            onClick={closeDeleteDialog}
+            variant="outlined"
+            sx={{
+              color: '#666',
+              borderColor: '#ddd',
+              '&:hover': {
+                backgroundColor: '#f5f5f5'
+              }
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleConfirmDelete}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(135deg, #1B5E20 0%, #4CAF50 100%)',
+              color: 'white',
+              fontWeight: 600,
+              '&:hover': {
+                background: 'linear-gradient(135deg, #0f4d2f 0%, #388e3c 100%)',
+                boxShadow: '0 4px 12px rgba(27, 94, 32, 0.3)'
+              }
+            }}
+          >
+            Eliminar incidente
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
