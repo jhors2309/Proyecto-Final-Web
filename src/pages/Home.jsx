@@ -1,6 +1,6 @@
 import { Box, Button, Card, CardContent, Container, Grid, Typography, Paper } from '@mui/material';
 import { Link } from 'react-router-dom';
-import AddAlertIcon from '@mui/icons-material/AddAlert';
+import AddAlertRoundedIcon from '@mui/icons-material/AddAlertRounded';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import { useAuth } from '../context/AuthContext';
@@ -75,7 +75,7 @@ function Home() {
                   mx: 'auto',
                   mb: 2
                 }}>
-                  <AddAlertIcon sx={{ fontSize: 32, color: 'white' }} />
+                  <AddAlertRoundedIcon sx={{ fontSize: 32}} />
                 </Box>
                 <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>
                   Nuevo Reporte
